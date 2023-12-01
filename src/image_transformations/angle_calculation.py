@@ -19,4 +19,4 @@ def calculate_angles(pt: np.ndarray):
     ay = np.arctan2(x, z)
     ax = np.arctan2(y, xz)
 
-    return ay, ax
+    return np.rad2deg(ay), np.rad2deg(ax)
