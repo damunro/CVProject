@@ -149,6 +149,9 @@ RUN pip install matplotlib
 # Install packages to make ros_build work
 RUN pip install empy catkin-pkg lark
 
+# Packages for computer vision project
+RUN pip install pyserial
+
 # Env vars for the nvidia-container-runtime.
 ENV NVIDIA_VISIBLE_DEVICES all
 ENV NVIDIA_DRIVER_CAPABILITIES graphics,utility,compute
