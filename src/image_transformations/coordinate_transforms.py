@@ -203,7 +203,7 @@ def calculate_matrix(tx, ty, tz, units:str="in") -> TransformationMatrix:
 
     # return TransformationMatrix(t=np.array([tx, ty, tz]))
     H = TransformationMatrix(t=__mount_to_camera_translation())
-    H = TransformationMatrix(t=np.array([tx,ty,tz])) * H
+    H = TransformationMatrix(t=np.array([-tx,ty,tz])) * H
     return H
 
 

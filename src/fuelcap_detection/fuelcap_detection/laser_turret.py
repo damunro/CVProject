@@ -19,13 +19,13 @@ class DetectionInfoSubscriber(Node):
         self.serial = serial
     
     def detection_info_callback(self, info_msg: FuelCapDetectionInfo):
-        if info_msg.is_fuelcap_detected:
+        if info_msg.is_fuelcap_detected and info_msg.bbox_confidence_score > 0.9:
             p = info_msg.pose_stamped.pose.position
             H = calculate_matrix(p.x, p.y, p.z)
             position, _ = H.as_pos_and_quat()
 
             angle_a, angle_b = calculate_matrix(position)
-            msg = f"a{angle_a}:b{angle_b}"
+            msg = f"a{angle_a}:b{angle_b}\n"
             msg = msg.encode("utf-8")
 
             self.serial.write(msg)
