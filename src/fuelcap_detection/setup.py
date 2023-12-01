@@ -21,7 +21,8 @@ setup(
     entry_points={
         'console_scripts': [
             'detection = fuelcap_detection.detection_node:main',
-            'info = fuelcap_detection.detection_info_subscriber:main'
+            'info = fuelcap_detection.detection_info_subscriber:main',
+            'turret = fuelcap_detection.laser_turret:main'
         ],
     },
 )

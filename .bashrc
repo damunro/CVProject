@@ -15,6 +15,8 @@ alias capture_image="cd ~/mines_ws && source install/setup.bash && ros2 service 
 alias fuelcap_detection_launch="cd ~/mines_ws && source install/setup.bash && ros2 run fuelcap_detection detection"
 # Display fuelcap detection message to console
 alias detection_info_launch="cd ~/mines_ws && source install/setup.bash && ros2 run fuelcap_detection info"
+# Start node to send serial commands to laser turret
+alias laser_turret_launch="cd ~/mines_ws && source install/setup.bash && ros2 run fuelcap_detection turret"
 
 ### DEPRICATED: old gazebo aliases
 # Gazebo Setup --For debugging, Should be done when image is built
