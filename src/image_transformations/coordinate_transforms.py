@@ -1,9 +1,3 @@
-################################################
-######### FILE IS NOT COMPLETE #################
-################################################
-# TODO: VERYIFY intrinsics matrix
-# TODO: Verity translation matrix
-
 from typing import List, Union
 
 import json
@@ -162,7 +156,7 @@ class IntrinsicsMatrix:
         coords = self.matrix @ pose
 
         pixels = (coords / coords[2])[:2]
-        return [round(p) if not np.isnan(p) else 0 for p in pixels]
+        return [round(p) for p in pixels]
     
     def calc_position(self, pixels: tuple = (640, 360), depth=1):
         '''
@@ -184,18 +178,16 @@ class IntrinsicsMatrix:
         return np.linalg.inv(self.matrix) @ pixels
 
 
-def calculate_matrix(x: float, y: float, z: float, angle_mount: float = 0, angle_cap: float = 0, units:str="in") -> TransformationMatrix:
+def calculate_matrix(tx, ty, tz, units:str="in") -> TransformationMatrix:
     """
     Calculates the transformation matrix from the camera to the fuel cap using the data collection rig
     Assumes fuel cap coordinates to be positive x in the left direction on wall, positive y down, positive z towards camera
     Positive fuel cap rotation are counter-clockwise, positve camera mount rotations are counter-clockwise (based on coordinates)
     
     Args:
-        x (float): horizontal distance along the wall
-        y (float): virtical distance along the wall
-        z (float): distance from the rig to the wall
-        angle_mount (float): angle measured at the camera mount
-        angle_cap (float): angle of the fuel cap on the wall (use protractor)
+        tx (float): x translation
+        ty (float): y translation
+        tz (float): z translation
         inits (in): the unit system 
     Returns:
         np.ndarray: translation matrix from camera to fuel cap
@@ -209,26 +201,13 @@ def calculate_matrix(x: float, y: float, z: float, angle_mount: float = 0, angle
     if units == "cm":
         x,y,z = [i * 10 for i in [x,y,z]]
 
-    # shrink y by height of the mount, which is 1.25 inches
-    y -= 25.4 * (1.2)
+    # return TransformationMatrix(t=np.array([tx, ty, tz]))
+    H = TransformationMatrix(t=__mount_to_camera_translation())
+    H = TransformationMatrix(t=np.array([tx,ty,tz])) * H
+    return H
 
-    # world2left transformation matrix
-    world2left = np.array(
-        [[float(camera_instrinsics['world2left_rot.x.x']), float(camera_instrinsics['world2left_rot.x.y']), float(camera_instrinsics['world2left_rot.x.z'])],
-        [float(camera_instrinsics['world2left_rot.y.x']), float(camera_instrinsics['world2left_rot.y.y']), float(camera_instrinsics['world2left_rot.y.z'])],
-        [float(camera_instrinsics['world2left_rot.z.x']), float(camera_instrinsics['world2left_rot.z.y']), float(camera_instrinsics['world2left_rot.z.z'])],]
-    )
+
     
-    H = TransformationMatrix()
-    H = H * Rotation.from_euler('z', -angle_cap, degrees=True).as_matrix()
-    #H = H * Rotation.from_euler('y', -10, degrees=True).as_matrix()
-    H = H * np.array([x,y,z])
-    H = H * Rotation.from_euler('y', angles=180-angle_mount, degrees=True).as_matrix()
-    H = H * __mount_to_camera_translation()
-    H = H * world2left
-
-
-    return H.invert()    
 
 
 def annotate_img(img: np.ndarray, H: TransformationMatrix, K: IntrinsicsMatrix, line_width=3, axis_len = 30) -> np.ndarray:
@@ -256,12 +235,9 @@ def annotate_img(img: np.ndarray, H: TransformationMatrix, K: IntrinsicsMatrix, 
     o,x,y,z = pixels
 
     thickness = line_width
-    cv2.line(img, o, x, (255,255,255), thickness+3)
     cv2.line(img, o, x, (0,0,255), thickness)
-    cv2.line(img, o, y, (255,255,255), thickness+3)
     cv2.line(img, o, y, (0,255,0), thickness)
-    cv2.line(img, o, z, (255,255,255), thickness+3)
-    cv2.line(img, o, z, (255,150,0), thickness)
+    cv2.line(img, o, z, (255,0,0), thickness)
 
     return img
 
@@ -276,7 +252,7 @@ def __mount_to_camera_translation(units: str="mm") -> np.ndarray:
     # return np.zeros(3)
     x = float(camera_instrinsics['baseline'])/2     # cameras are 18 mm apart
     y = -42 / 2                                     # cameras are located on middle of camera in y, and cam is 42 mm tall
-    z = 23 - 8.35 - 3.7                             # z distance between mounting hole and z = 0 on depth module
+    z = 10.95                                       # z distance between mounting hole and z = 0 on depth module
 
     trans = np.array([x,y,z], dtype = np.float32)
     
@@ -289,42 +265,33 @@ def __check_inits(units):
 
 def main():
     K = IntrinsicsMatrix()
-    pix = [i for i in K.matrix[:2, 2]]
+
+    # create mount to camera to mount transformation matrix
+    H = TransformationMatrix(t=__mount_to_camera_translation())
+
+    p_mount = H.transform_point(np.array([0,0,0]))
+
+    assert p_mount[0] < 0       # Camera origin is in left imager, negative direction from mount
+    assert p_mount[1] < 0       # Camera origin is above mount origin, negative direction
+    assert p_mount[2] > 0       # Camera origin is in front of mounting screw, positve
+
+    H = calculate_matrix(tx=95.73, ty=75.8, tz=0, units="mm")
+    p_turret = H.transform_point(np.array([0,0,0]))
+
+    assert p_turret[0] > 0      # Mount right of turret (positive)
+    assert p_turret[1] > 0      # Mount below turret (positive)
+    assert p_turret[2] > 0      # no z translation, should remain positive
+
+    p_camera = np.array([0,0,20])
+    p_turret = H.transform_point(p_camera)
+
+    assert p_turret[0] > 0      # Mount right of turret (positive)
+    assert p_turret[1] > 0      # Mount below turret (positive)
+    assert p_turret[2] > 0      # no z translation, should remain positive
+
     
-    depth = 500
-    new_pos = K.calc_position((pix[0]+10, pix[1]), depth)
-    new_pixels = K.calc_pixels(new_pos)
-    print(new_pixels, pix)
-    # pos = [1, 1, 2]
-    # pixels = (0,0)
-    # depth = 3
-    # target_pos = [-3.33183754, -1.87415862,  3.]
-    # tol = 1e-5
+    
 
-
-    # # tests
-    # assert K.calc_pixels() == [640, 360]
-    # assert K.calc_pixels(pos) == [928, 648]
-    # assert [int(i) for i in list(K.calc_position())] == [0, 0, 1]
-    # pos = K.calc_position(pixels, depth)
-    # assert np.sum(pos - np.array(target_pos)) < tol
-
-
-    # img = cv2.imread("data/saved_img.png")
-    # K = IntrinsicsMatrix()
-    # translation = calculate_matrix(-6, 19.05, 45.72, angle_mount=-10, angle_cap=20)
-    # # pos, orien = translation.as_pos_and_quat()
-
-    # # print(pos, orien)
-
-    # rot = Rotation.from_euler("y", np.deg2rad(180)).as_matrix()
-
-    # img = annotate_img(img, translation, K, axis_len=30)
-
-    # cv2.imshow("Annotated Image", img)
-    # cv2.waitKey(0)
-
-    # cv2.imwrite("annotated_img.png", img)
 
 
 if __name__ == "__main__":
