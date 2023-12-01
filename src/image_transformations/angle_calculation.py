@@ -1,7 +1,7 @@
 import numpy as np
 
 def calculate_angles(pt: np.ndarray):
-    """AI is creating summary for calculate_angles
+    """Calculates the angles based on (x,y,z) coordinates
 
     Args:
         pt (np.ndarray): target cartesian points in the form of (x,y,z)

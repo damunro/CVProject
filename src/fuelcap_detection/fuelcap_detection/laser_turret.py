@@ -1,5 +1,6 @@
 import rclpy
 from rclpy.node import Node
+from image_transformations.coordinate_transforms import *
 
 from custom_interfaces.msg import FuelCapDetectionInfo
 from geometry_msgs.msg import PoseStamped
@@ -16,13 +17,20 @@ class DetectionInfoSubscriber(Node):
     
     def detection_info_callback(self, info_msg: FuelCapDetectionInfo):
         if info_msg.is_fuelcap_detected:
-            log_msg = 'recieved detection info:\n'
-            log_msg += f'Inference Time: {info_msg.inference_time}\n'
-            log_msg += f'Position: {info_msg.pose_stamped.pose.position.x}, {info_msg.pose_stamped.pose.position.y}, {info_msg.pose_stamped.pose.position.z}\n'
-            log_msg += f'Orientation: {info_msg.pose_stamped.pose.orientation.x}, {info_msg.pose_stamped.pose.orientation.y}, {info_msg.pose_stamped.pose.orientation.z}, {info_msg.pose_stamped.pose.orientation.w}\n'
-            log_msg += f'Bounding Box Confidence: {info_msg.bbox_confidence_score}\n'
-            log_msg += f'Additional Info: {info_msg.detection_info}\n'
-            self.get_logger().info(log_msg)
+            p = info_msg.pose_stamped.pose.position
+            H = calculate_matrix(p.x, p.y, p.z)
+            position, _ = H.as_pos_and_quat()
+
+            angle_a, angle_b = calculate_matrix(position)
+            msg = f"a{angle_a}:b{angle_b}"
+
+            # log_msg = 'recieved detection info:\n'
+            # log_msg += f'Inference Time: {info_msg.inference_time}\n'
+            # log_msg += f'Position: {info_msg.pose_stamped.pose.position.x}, {info_msg.pose_stamped.pose.position.y}, {info_msg.pose_stamped.pose.position.z}\n'
+            # log_msg += f'Orientation: {info_msg.pose_stamped.pose.orientation.x}, {info_msg.pose_stamped.pose.orientation.y}, {info_msg.pose_stamped.pose.orientation.z}, {info_msg.pose_stamped.pose.orientation.w}\n'
+            # log_msg += f'Bounding Box Confidence: {info_msg.bbox_confidence_score}\n'
+            # log_msg += f'Additional Info: {info_msg.detection_info}\n'
+            # self.get_logger().info(log_msg)
         else:
             self.get_logger().error(f'No fuelcap detected: {info_msg.detection_info}')
 
