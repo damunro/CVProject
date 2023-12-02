@@ -197,9 +197,9 @@ def calculate_matrix(tx, ty, tz, units:str="in") -> TransformationMatrix:
         raise ValueError("Unit system must be in inches, centimeters, or milimeters ->", units)
     
     if units == "in":
-        x,y,z = [i * 25.4 for i in [x,y,z]]
+        x,y,z = [i * 25.4 for i in [tx,ty,tz]]
     if units == "cm":
-        x,y,z = [i * 10 for i in [x,y,z]]
+        x,y,z = [i * 10 for i in [tx,ty,tz]]
 
     # return TransformationMatrix(t=np.array([tx, ty, tz]))
     H = TransformationMatrix(t=__mount_to_camera_translation())
