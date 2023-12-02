@@ -156,7 +156,7 @@ class IntrinsicsMatrix:
         coords = self.matrix @ pose
 
         pixels = (coords / coords[2])[:2]
-        return [round(p) for p in pixels]
+        return [round(p) if not np.isnan(p) else 0 for p in pixels]
     
     def calc_position(self, pixels: tuple = (640, 360), depth=1):
         '''
