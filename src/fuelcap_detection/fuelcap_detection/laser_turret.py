@@ -29,7 +29,7 @@ class DetectionInfoSubscriber(Node):
             position = H.transform_point(np.array([p.x, p.y, p.z]))
 
             angle_a, angle_b = calculate_angles(position)
-            msg = f"a{round(angle_a)}:b{round(angle_b)}\n"
+            msg = f"a{round(angle_a, 1)}:b{round(-angle_b, 1)}\n"
             msg = msg.encode("utf-8")
 
             self.serial.write(msg)
@@ -44,7 +44,7 @@ class DetectionInfoSubscriber(Node):
             self.get_logger().error(f'No fuelcap detected: {info_msg.detection_info}')
 
 def main(args=None):
-    ser = serial.Serial('/dev/ttyUSB1')
+    ser = serial.Serial('/dev/ttyUSB0')
     rclpy.init(args=args)
     detection_node = DetectionInfoSubscriber(serial=ser)
 
